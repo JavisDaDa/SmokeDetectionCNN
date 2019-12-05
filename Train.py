@@ -385,8 +385,8 @@ if __name__ == "__main__":
                         elif (frame_count > 0):
                             HSV_V_50_block = HSV_V_all_block_ndarray[:frame_count, m//20]
 
-                        # if (np.average(HSV_V_50_block) - average_V < 0):
-                        if(True):
+                        if (np.average(HSV_V_50_block) - average_V < 0):
+                            ###################
                             # cv2.rectangle(frame, (m, n), (m+BLOCK_WIDTH, n+BLOCK_HEIGHT), (0, 0, 255))
                             candidate_block = frame[n:(n+BLOCK_HEIGHT), m:(m+BLOCK_WIDTH)]
 
@@ -394,6 +394,7 @@ if __name__ == "__main__":
                                 # if the object moving upward
                                 toward_num = get_move_toward(two_gray_frames, m, n)
                                 if 1 < toward_num < 5:
+                                    #####################3
                                     # cv2.rectangle(frame, (m, n), (m+BLOCK_WIDTH, n+BLOCK_HEIGHT), (255, 0, 0))
                                     candidate_block2_flat = np.reshape(candidate_block, (1, -1))
 
