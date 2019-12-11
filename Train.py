@@ -1,5 +1,8 @@
 # *^_^* coding:utf-8 *^_^*
-
+'''
+ELEC/COMP 576 Final Project Programming
+Yunda Jia, Siyao Xiao, Yu Wu, Rong Sun
+'''
 from __future__ import print_function
 import cv2
 import numpy as np
@@ -15,20 +18,16 @@ DEBUG = False
 AVERAGE_S_THRESHOLD = 70
 HSV_V_BLOCK_COUNT = 50
 CANDIDATE_BLOCK_SIZE = 10
-VIDEO_FILE = "smoke2.avi"
+VIDEO_FILE = ["smoke1.avi", "smoke2.avi", "smoke3.avi", "smoke4.avi", "smoke5.avi", "smoke6.avi",
+               "smoke7.avi", "smoke8.avi", "smoke9.avi", "smoke10.avi"]
 BLOCK_WIDTH = 32
 BLOCK_HEIGHT = 24
 FRAME_SKIP = 1
 FRAME_SIZE = (0, 0)
-
 train_smoke_path = "medias/pictures/smoke_train_32x24/"
 train_none_path = "medias/pictures/nosmoke_train_32x24/"
 test_smoke_path = "medias/pictures/smoke_test_32x24/"
 test_none_path = "medias/pictures/nosmoke_test_32x24/"
-
-
-# test_smoke_path = "medias/GMMPictures/smoke8/"
-# test_none_path = "medias/GMMPictures/nosmoke2/"
 
 
 def get_move_toward(list_frames, m, n):
@@ -36,7 +35,6 @@ def get_move_toward(list_frames, m, n):
     Get the direction of the area moving towards.
     list_frames is the list of current and last gray frame
     """
-
     bias = 2
     if m < bias or n < bias or m > FRAME_SIZE[0] - BLOCK_WIDTH - bias or n > FRAME_SIZE[1] - BLOCK_HEIGHT - bias:
         return 7
@@ -80,11 +78,7 @@ def load_images(path):
     for dirpath, dirnames, filenames in os.walk(path):
         for filename in filenames:
             img = io.imread(path + filename)
-            img2 = filters.gaussian(img, sigma=1)  # 这一步有滤波
-            # img2 = color.rgb2hsv(img)
-            # img2 = img > filters.threshold_mean(img)
-            # cv2.imshow("img", img2)
-            # cv2.waitKey(0)
+            img2 = filters.gaussian(img, sigma=1)
             img_flat = np.reshape(img2, (1, -1))
             img_list.append(img_flat)
     return img_list
@@ -162,7 +156,6 @@ def calc_direction(list1, list2):
 def compute_accuracy(v_xs, v_ys):
     global prediction
     y_pre = sess.run(prediction, feed_dict={xs: v_xs, keep_prob: 1})
-    # print(y_pre)
     correct_prediction = tf.equal(tf.argmax(y_pre, 1), tf.argmax(v_ys, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     result = sess.run(accuracy, feed_dict={xs: v_xs, ys: v_ys, keep_prob: 1})
@@ -180,13 +173,10 @@ def bias_variable(shape):
 
 
 def conv2d(x, W):
-    # stride [1, x_movement, y_movement, 1]
-    # Must have strides[0] = strides[3] = 1
     return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
 
 
 def max_pool_2x2(x):
-    # stride [1, x_movement, y_movement, 1]
     return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
 
@@ -237,18 +227,11 @@ if __name__ == "__main__":
     correct_prediction = tf.equal(tf.arg_max(prediction, 1), tf.arg_max(ys, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name='accuracy')
     tf.summary.scalar(cross_entropy.op.name, cross_entropy)
-    # Build the summary operation based on the TF collection of Summaries.
-    # module 'tensorflow' has no attribute 'merge_all_summaries'
-    # summary_op = tf.merge_all_summaries()
     summary_op = tf.summary.merge_all()
     init = tf.initialize_all_variables()
 
     # Create a saver for writing training checkpoints.
     saver = tf.train.Saver()
-
-    # Instantiate a SummaryWriter to output summaries and the Graph.
-    # module 'tensorflow._api.v1.train' has no attribute 'SummaryWriter'
-    # summary_writer = tf.train.SummaryWriter(result_dir, sess.graph)
     summary_writer = tf.summary.FileWriter(result_dir, sess.graph)
     # load data
     total_train_images, \
@@ -259,10 +242,8 @@ if __name__ == "__main__":
     sess.run(init)
 
     round_num = 100
-    # fp = open("log.txt", "w")
     max_step = 3000
     for index in range(max_step):
-        # batch_xs, batch_ys = mnist.train.next_batch(100)
         batch_xs = []
         batch_ys = []
         for i in range(round_num):
@@ -272,23 +253,14 @@ if __name__ == "__main__":
             )
             batch_xs.append(total_train_images[rand_num])
             batch_ys.append(total_train_labels[rand_num])
-        # print(len(batch_xs))
-        # p = sess.run(
-        # prediction,
-        # feed_dict={xs: batch_xs, ys: batch_ys, keep_prob: 0.5})
-        ##################
         summary_str = sess.run(
             summary_op,
             feed_dict={xs: batch_xs, ys: batch_ys, keep_prob: 0.9}
         )
-        ##################
         if index % round_num == 0:
             test_accuracy = compute_accuracy(
                 total_test_images, total_test_labels)
             print("Testing step: {}, Testing accuracy: {:.2f} ".format(index, test_accuracy))
-            # if 1.0 > p > 0.4:
-            #     break
-            # fp.writelines("{}: {}\n".format(index, p))
             summary_writer.add_summary(summary_str, index)
             summary_writer.flush()
         # save the checkpoints every 1100 iterations
@@ -296,140 +268,130 @@ if __name__ == "__main__":
             checkpoint_file = os.path.join(result_dir, 'checkpoint')
             saver.save(sess, checkpoint_file, global_step=index)
         train_step.run(feed_dict={xs: batch_xs, ys: batch_ys, keep_prob: 0.9})  # run one train_step
-    VIDEO_SAVE_PATH = "re" + VIDEO_FILE
-    fp = open(VIDEO_SAVE_PATH + ".txt", "w")
-    cap = cv2.VideoCapture(
-        "medias/videos/" + VIDEO_FILE)
-    ret, start_frame = cap.read()
-    start_gray_frame = cv2.cvtColor(start_frame, cv2.COLOR_BGR2GRAY)
-    fgbg = cv2.createBackgroundSubtractorMOG2(
-        history=500,
-        detectShadows=False
-    )
-    height, width = start_frame.shape[:2]
-    FRAME_SIZE = (width, height)
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter(VIDEO_SAVE_PATH, fourcc, 25.0, FRAME_SIZE)
-    frame_count = 0
+    for VIDEO_FILE in VIDEO_FILE:
+        VIDEO_SAVE_PATH = "re" + VIDEO_FILE
+        fp = open(VIDEO_SAVE_PATH + ".txt", "w")
+        cap = cv2.VideoCapture(
+            "medias/videos/" + VIDEO_FILE)
+        ret, start_frame = cap.read()
+        start_gray_frame = cv2.cvtColor(start_frame, cv2.COLOR_BGR2GRAY)
+        fgbg = cv2.createBackgroundSubtractorMOG2(
+            history=500,
+            detectShadows=False
+        )
+        height, width = start_frame.shape[:2]
+        FRAME_SIZE = (width, height)
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        out = cv2.VideoWriter(VIDEO_SAVE_PATH, fourcc, 25.0, FRAME_SIZE)
+        frame_count = 0
 
-    # save all blocks of the frame in HSV color space
-    HSV_V_all_block = []
-    two_gray_frames = []
-    while 1:
-        ret, frame = cap.read()
-        if frame is None:
-            print("The End!")
-            break
+        # save all blocks of the frame in HSV color space
+        HSV_V_all_block = []
+        two_gray_frames = []
+        while 1:
+            ret, frame = cap.read()
+            if frame is None:
+                print("The End!")
+                break
 
-        smooth_kernel = np.ones((5, 5), np.float32)/25
-        smooth_frame = cv2.filter2D(frame, -1, smooth_kernel)
+            smooth_kernel = np.ones((5, 5), np.float32) / 25
+            smooth_frame = cv2.filter2D(frame, -1, smooth_kernel)
 
-        gray_frame = cv2.cvtColor(smooth_frame, cv2.COLOR_BGR2GRAY)
-        if len(two_gray_frames) > FRAME_SKIP:
-            two_gray_frames.pop(0)
-        two_gray_frames.append(gray_frame)
+            gray_frame = cv2.cvtColor(smooth_frame, cv2.COLOR_BGR2GRAY)
+            if len(two_gray_frames) > FRAME_SKIP:
+                two_gray_frames.pop(0)
+            two_gray_frames.append(gray_frame)
 
-        hsv_frame = cv2.cvtColor(smooth_frame, cv2.COLOR_BGR2HSV_FULL)
-        if DEBUG:
-            cv2.imshow("gray_frame", gray_frame)
-            cv2.imshow("hsv_frame", hsv_frame)
+            hsv_frame = cv2.cvtColor(smooth_frame, cv2.COLOR_BGR2HSV_FULL)
+            if DEBUG:
+                cv2.imshow("gray_frame", gray_frame)
+                cv2.imshow("hsv_frame", hsv_frame)
 
-        # GMM
-        fgmask = fgbg.apply(gray_frame)
-        kernel1 = np.ones((5, 5), np.uint8)
-        kernel2 = np.ones((3, 3), np.uint8)
-        fgmask = cv2.erode(fgmask, kernel2)
-        fgmask = cv2.dilate(fgmask, kernel1)
-        ret, fgmask_bin = cv2.threshold(fgmask, 0, 1, cv2.THRESH_BINARY)
-        if DEBUG:
-            ret, fgmask_bin_show = cv2.threshold(
-                fgmask,
-                0,
-                255,
-                cv2.THRESH_BINARY
-            )
-            cv2.imshow("fgmask_bin", fgmask_bin_show)
+            # GMM
+            fgmask = fgbg.apply(gray_frame)
+            kernel1 = np.ones((5, 5), np.uint8)
+            kernel2 = np.ones((3, 3), np.uint8)
+            fgmask = cv2.erode(fgmask, kernel2)
+            fgmask = cv2.dilate(fgmask, kernel1)
+            ret, fgmask_bin = cv2.threshold(fgmask, 0, 1, cv2.THRESH_BINARY)
+            if DEBUG:
+                ret, fgmask_bin_show = cv2.threshold(
+                    fgmask,
+                    0,
+                    255,
+                    cv2.THRESH_BINARY
+                )
+                cv2.imshow("fgmask_bin", fgmask_bin_show)
 
-        HSV_V_each_block = []
-        HSV_V_50_block = np.array(0)
-        for m in range(0, width, BLOCK_WIDTH):
-            for n in range(0, height, BLOCK_HEIGHT):
-                fgmask_clip = fgmask_bin[n:(BLOCK_HEIGHT+n), m:(BLOCK_WIDTH+m)]
-                candidate_clip = hsv_frame[n:(BLOCK_HEIGHT+n), m:(BLOCK_WIDTH+m)]
+            HSV_V_each_block = []
+            HSV_V_50_block = np.array(0)
+            for m in range(0, width, BLOCK_WIDTH):
+                for n in range(0, height, BLOCK_HEIGHT):
+                    fgmask_clip = fgmask_bin[n:(BLOCK_HEIGHT + n), m:(BLOCK_WIDTH + m)]
+                    candidate_clip = hsv_frame[n:(BLOCK_HEIGHT + n), m:(BLOCK_WIDTH + m)]
 
-                # store V of each frames
-                HSV_V_each_block.append(np.average(candidate_clip[:, :, 2]))
+                    # store V of each frames
+                    HSV_V_each_block.append(np.average(candidate_clip[:, :, 2]))
 
-                # find the move clips
-                if fgmask_clip.any():
-                    if DEBUG:
-                        cv2.rectangle(frame, (m, n), (m+BLOCK_WIDTH, n+BLOCK_HEIGHT), (255, 0, 0))
-
-                    # average of S
-                    candidate_clip_S = candidate_clip[:, :, 1]
-                    average_S = np.average(candidate_clip_S)
-
-                    # average of V
-                    candidate_clip_V = candidate_clip[:, :, 2]
-                    average_V = np.average(candidate_clip_V)
-
-                    # if average of S lower than threshold it maybe smoke area
-                    if (average_S < AVERAGE_S_THRESHOLD):
+                    # find the move clips
+                    if fgmask_clip.any():
                         if DEBUG:
-                            cv2.rectangle(frame, (m, n), (m+BLOCK_WIDTH, n+BLOCK_HEIGHT), (0, 255, 0))
+                            cv2.rectangle(frame, (m, n), (m + BLOCK_WIDTH, n + BLOCK_HEIGHT), (255, 0, 0))
 
-                        # the value of V in the smoke area is higher
-                        HSV_V_all_block_ndarray = np.array(HSV_V_all_block)
-                        if (frame_count > HSV_V_BLOCK_COUNT - 1):
-                            HSV_V_50_block = HSV_V_all_block_ndarray[:, m//20]
-                        elif (frame_count > 0):
-                            HSV_V_50_block = HSV_V_all_block_ndarray[:frame_count, m//20]
+                        # average of S
+                        candidate_clip_S = candidate_clip[:, :, 1]
+                        average_S = np.average(candidate_clip_S)
 
-                        if (np.average(HSV_V_50_block) - average_V < 0):
-                            ###################
-                            cv2.rectangle(frame, (m, n), (m+BLOCK_WIDTH, n+BLOCK_HEIGHT), (0, 0, 255))
-                            candidate_block = frame[n:(n+BLOCK_HEIGHT), m:(m+BLOCK_WIDTH)]
+                        # average of V
+                        candidate_clip_V = candidate_clip[:, :, 2]
+                        average_V = np.average(candidate_clip_V)
 
-                            if frame_count > FRAME_SKIP:
-                                # if the object moving upward
-                                toward_num = get_move_toward(two_gray_frames, m, n)
-                                if 1 < toward_num < 5:
-                                    #####################3
-                                    cv2.rectangle(frame, (m, n), (m+BLOCK_WIDTH, n+BLOCK_HEIGHT), (255, 0, 0))
-                                    candidate_block2_flat = np.reshape(candidate_block, (1, -1))
+                        # if average of S lower than threshold it maybe smoke area
+                        if (average_S < AVERAGE_S_THRESHOLD):
+                            if DEBUG:
+                                cv2.rectangle(frame, (m, n), (m + BLOCK_WIDTH, n + BLOCK_HEIGHT), (0, 255, 0))
 
-                                    # print("{},{},{}".format(frame_count, n, m))
-                                    # cv2.waitKey(10)
-                                    result = sess.run(prediction, feed_dict={xs: candidate_block2_flat, keep_prob:1})
-                                    # print("CNN")
-                                    if result[0][0] > result[0][1]:
-                                        str = "find smoke at: frame{}({},{})".format(frame_count, n, m)
-                                        print(str)
-                                        fp.writelines(str + "\n")
-                                        cv2.rectangle(frame, (m, n), (m+BLOCK_WIDTH, n+BLOCK_HEIGHT), (255, 255, 255))
-                                    # cv2.waitKey(0)
+                            # the value of V in the smoke area is higher
+                            HSV_V_all_block_ndarray = np.array(HSV_V_all_block)
+                            if (frame_count > HSV_V_BLOCK_COUNT - 1):
+                                HSV_V_50_block = HSV_V_all_block_ndarray[:, m // 20]
+                            elif (frame_count > 0):
+                                HSV_V_50_block = HSV_V_all_block_ndarray[:frame_count, m // 20]
 
-        cv2.putText(frame, "frame{}".format(frame_count), (20, 20), 1, 1.0, (12, 55, 50))
-        out.write(frame)
-        cv2.imshow("frame", frame)
+                            if (np.average(HSV_V_50_block) - average_V < 0):
+                                cv2.rectangle(frame, (m, n), (m + BLOCK_WIDTH, n + BLOCK_HEIGHT), (0, 0, 255))
+                                candidate_block = frame[n:(n + BLOCK_HEIGHT), m:(m + BLOCK_WIDTH)]
 
-        # store V of 50 frames before current frame
-        if frame_count > HSV_V_BLOCK_COUNT - 1:
-            HSV_V_all_block.pop(0)
-            HSV_V_all_block.append(HSV_V_each_block)
-            # print(HSV_V_all_block)
-        else:
-            HSV_V_all_block.append(HSV_V_each_block)
+                                if frame_count > FRAME_SKIP:
+                                    # if the object moving upward
+                                    toward_num = get_move_toward(two_gray_frames, m, n)
+                                    if 1 < toward_num < 5:
+                                        cv2.rectangle(frame, (m, n), (m + BLOCK_WIDTH, n + BLOCK_HEIGHT), (255, 0, 0))
+                                        candidate_block2_flat = np.reshape(candidate_block, (1, -1))
+                                        result = sess.run(prediction,
+                                                          feed_dict={xs: candidate_block2_flat, keep_prob: 1})
+                                        if result[0][0] > result[0][1]:
+                                            str = "find smoke at: frame{}({},{})".format(frame_count, n, m)
+                                            print(str)
+                                            fp.writelines(str + "\n")
+                                            cv2.rectangle(frame, (m, n), (m + BLOCK_WIDTH, n + BLOCK_HEIGHT),
+                                                          (255, 255, 255))
 
-        # print(frame_count)
-        # fp.writelines("{}".format(frame_count))
+            cv2.putText(frame, "frame{}".format(frame_count), (20, 20), 1, 1.0, (12, 55, 50))
+            out.write(frame)
+            cv2.imshow("frame", frame)
 
-        frame_count += 1
+            # store V of 50 frames before current frame
+            if frame_count > HSV_V_BLOCK_COUNT - 1:
+                HSV_V_all_block.pop(0)
+                HSV_V_all_block.append(HSV_V_each_block)
+            else:
+                HSV_V_all_block.append(HSV_V_each_block)
+            frame_count += 1
 
-        if (cv2.waitKey(1) & 0xFF) == 27:
-            print("ESC")
-            break
-
+            if (cv2.waitKey(1) & 0xFF) == 27:
+                print("ESC")
+                break
     fp.close()
     cap.release()
     cv2.destroyAllWindows()
