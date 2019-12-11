@@ -1,0 +1,6 @@
+find smoke at: frame669(72,64)
+find smoke at: frame670(72,64)
+find smoke at: frame672(72,64)
+find smoke at: frame674(72,64)
+find smoke at: frame675(72,64)
+find smoke at: frame676(72,64)
